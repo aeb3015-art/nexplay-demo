@@ -1,0 +1,562 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>NexPlay — Game Portal</title>
+  <link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@400;500;600;700&family=Exo+2:wght@300;400;600;700;800&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --bg:       #04070f;
+      --surface:  #080e1c;
+      --border:   rgba(0,229,255,0.12);
+      --accent:   #00e5ff;
+      --accent2:  #7c3aed;
+      --gold:     #f59e0b;
+      --text:     #e2e8f0;
+      --muted:    #475569;
+    }
+
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'Exo 2', sans-serif;
+      min-height: 100vh;
+      overflow-x: hidden;
+    }
+
+    /* ── Grid background ── */
+    body::before {
+      content: "";
+      position: fixed; inset: 0;
+      background-image:
+        linear-gradient(rgba(0,229,255,0.03) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(0,229,255,0.03) 1px, transparent 1px);
+      background-size: 40px 40px;
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    /* ── Glowing orbs ── */
+    .orb {
+      position: fixed;
+      border-radius: 50%;
+      filter: blur(80px);
+      pointer-events: none;
+      z-index: 0;
+    }
+    .orb1 { width: 400px; height: 400px; background: rgba(124,58,237,0.15); top: -100px; right: -100px; }
+    .orb2 { width: 300px; height: 300px; background: rgba(0,229,255,0.08); bottom: 100px; left: -80px; }
+
+    /* ── Nav ── */
+    nav {
+      position: relative; z-index: 10;
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 20px 40px;
+      border-bottom: 1px solid var(--border);
+      background: rgba(4,7,15,0.8);
+      backdrop-filter: blur(12px);
+    }
+
+    .logo {
+      font-family: 'Rajdhani', sans-serif;
+      font-size: 26px; font-weight: 700; letter-spacing: .1em;
+      color: var(--accent);
+      text-shadow: 0 0 20px rgba(0,229,255,0.4);
+    }
+    .logo span { color: var(--accent2); }
+
+    .nav-right { display: flex; align-items: center; gap: 20px; }
+
+    .user-chip {
+      display: flex; align-items: center; gap: 10px;
+      background: rgba(255,255,255,0.04);
+      border: 1px solid var(--border);
+      border-radius: 50px; padding: 8px 16px;
+      font-size: 13px; font-weight: 600;
+    }
+
+    .avatar {
+      width: 28px; height: 28px; border-radius: 50%;
+      background: linear-gradient(135deg, var(--accent2), var(--accent));
+      display: flex; align-items: center; justify-content: center;
+      font-size: 12px; font-weight: 700; color: white;
+    }
+
+    /* ── Main layout ── */
+    .container {
+      position: relative; z-index: 1;
+      max-width: 1100px; margin: 0 auto; padding: 40px 24px;
+    }
+
+    /* ── Wallet card ── */
+    .wallet-card {
+      background: linear-gradient(135deg, rgba(8,14,28,0.9), rgba(12,18,36,0.9));
+      border: 1px solid var(--border);
+      border-radius: 20px;
+      padding: 32px;
+      margin-bottom: 32px;
+      display: flex; align-items: center; justify-content: space-between;
+      gap: 24px;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .wallet-card::before {
+      content: "";
+      position: absolute; top: 0; left: 0; right: 0; height: 1px;
+      background: linear-gradient(90deg, transparent, var(--accent), transparent);
+    }
+
+    .wallet-glow {
+      position: absolute; top: -40px; right: -40px;
+      width: 200px; height: 200px;
+      background: radial-gradient(circle, rgba(0,229,255,0.06), transparent 70%);
+    }
+
+    .wallet-info h2 {
+      font-size: 13px; font-weight: 600; letter-spacing: .12em;
+      text-transform: uppercase; color: var(--muted); margin-bottom: 10px;
+    }
+
+    .balance {
+      font-family: 'Rajdhani', sans-serif;
+      font-size: 52px; font-weight: 700; line-height: 1;
+      background: linear-gradient(135deg, #fff 0%, var(--accent) 100%);
+      -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+      margin-bottom: 6px;
+    }
+
+    .balance-sub {
+      font-size: 13px; color: var(--muted);
+    }
+
+    .wallet-actions { display: flex; gap: 12px; flex-wrap: wrap; }
+
+    /* ── Add Credit button ── */
+    .btn-credit {
+      display: flex; align-items: center; gap: 10px;
+      background: linear-gradient(135deg, #00e5ff, #0077b6);
+      border: none; border-radius: 12px;
+      padding: 14px 28px;
+      color: #04070f; font-family: 'Exo 2', sans-serif;
+      font-size: 15px; font-weight: 800; letter-spacing: .04em;
+      cursor: pointer;
+      box-shadow: 0 8px 32px rgba(0,229,255,0.3);
+      transition: all .2s;
+      position: relative; overflow: hidden;
+    }
+
+    .btn-credit::after {
+      content: "";
+      position: absolute; inset: 0;
+      background: linear-gradient(135deg, rgba(255,255,255,0.15), transparent);
+      opacity: 0; transition: opacity .2s;
+    }
+
+    .btn-credit:hover { transform: translateY(-2px); box-shadow: 0 12px 40px rgba(0,229,255,0.45); }
+    .btn-credit:hover::after { opacity: 1; }
+    .btn-credit:active { transform: translateY(0); }
+    .btn-credit:disabled { opacity: .5; cursor: not-allowed; transform: none; }
+
+    .btn-ghost {
+      background: rgba(255,255,255,0.04);
+      border: 1px solid var(--border);
+      border-radius: 12px; padding: 14px 20px;
+      color: var(--muted); font-family: 'Exo 2', sans-serif;
+      font-size: 14px; font-weight: 600; cursor: pointer;
+      transition: all .2s;
+    }
+    .btn-ghost:hover { border-color: rgba(0,229,255,0.3); color: var(--text); }
+
+    /* ── Game grid ── */
+    .section-title {
+      font-family: 'Rajdhani', sans-serif;
+      font-size: 20px; font-weight: 700; letter-spacing: .08em;
+      text-transform: uppercase; color: var(--accent);
+      margin-bottom: 20px; display: flex; align-items: center; gap: 10px;
+    }
+    .section-title::after {
+      content: ""; flex: 1; height: 1px;
+      background: linear-gradient(90deg, var(--border), transparent);
+    }
+
+    .games-grid {
+      display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+      gap: 16px; margin-bottom: 40px;
+    }
+
+    .game-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 16px; overflow: hidden;
+      transition: all .25s; cursor: pointer;
+    }
+    .game-card:hover { transform: translateY(-4px); border-color: rgba(0,229,255,0.3); box-shadow: 0 12px 32px rgba(0,0,0,0.4); }
+
+    .game-thumb {
+      height: 120px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 48px;
+    }
+
+    .game-body { padding: 14px; }
+    .game-name { font-weight: 700; font-size: 15px; margin-bottom: 6px; }
+    .game-price {
+      display: flex; align-items: center; justify-content: space-between;
+    }
+    .price-tag {
+      font-family: 'Rajdhani', sans-serif;
+      font-size: 18px; font-weight: 700;
+      color: var(--gold);
+    }
+    .btn-buy {
+      background: rgba(245,158,11,0.12);
+      border: 1px solid rgba(245,158,11,0.25);
+      border-radius: 8px; padding: 5px 12px;
+      color: var(--gold); font-size: 12px; font-weight: 700;
+      cursor: pointer; transition: all .2s;
+      font-family: 'Exo 2', sans-serif;
+    }
+    .btn-buy:hover { background: rgba(245,158,11,0.2); }
+
+    /* ── Modal overlay ── */
+    .modal-overlay {
+      position: fixed; inset: 0; z-index: 100;
+      background: rgba(4,7,15,0.85);
+      backdrop-filter: blur(8px);
+      display: flex; align-items: center; justify-content: center;
+      opacity: 0; pointer-events: none;
+      transition: opacity .25s;
+    }
+    .modal-overlay.open { opacity: 1; pointer-events: all; }
+
+    .modal {
+      background: var(--surface);
+      border: 1px solid rgba(0,229,255,0.2);
+      border-radius: 24px; padding: 36px;
+      width: 100%; max-width: 420px;
+      transform: translateY(20px) scale(.97);
+      transition: transform .3s;
+      position: relative;
+    }
+    .modal-overlay.open .modal { transform: translateY(0) scale(1); }
+
+    .modal-title {
+      font-family: 'Rajdhani', sans-serif;
+      font-size: 24px; font-weight: 700; letter-spacing: .06em;
+      color: var(--accent); margin-bottom: 6px;
+    }
+    .modal-sub { font-size: 13px; color: var(--muted); margin-bottom: 24px; }
+
+    .amount-presets {
+      display: grid; grid-template-columns: repeat(3,1fr); gap: 10px;
+      margin-bottom: 20px;
+    }
+    .preset {
+      background: rgba(255,255,255,0.03);
+      border: 1px solid var(--border);
+      border-radius: 10px; padding: 12px;
+      text-align: center; cursor: pointer;
+      transition: all .2s;
+    }
+    .preset:hover, .preset.active {
+      border-color: var(--accent);
+      background: rgba(0,229,255,0.06);
+      color: var(--accent);
+    }
+    .preset-val { font-family: 'Rajdhani', sans-serif; font-size: 22px; font-weight: 700; }
+    .preset-sub { font-size: 11px; color: var(--muted); }
+
+    .config-note {
+      background: rgba(0,229,255,0.04);
+      border: 1px solid rgba(0,229,255,0.12);
+      border-radius: 10px; padding: 12px 14px;
+      font-size: 11px; color: var(--muted); line-height: 1.6;
+      margin-bottom: 20px;
+    }
+    .config-note code { color: var(--accent); font-family: monospace; }
+
+    .modal-footer { display: flex; gap: 10px; }
+    .modal-footer .btn-credit { flex: 1; justify-content: center; }
+
+    .spinner {
+      width: 18px; height: 18px;
+      border: 2px solid rgba(4,7,15,0.3);
+      border-top-color: #04070f;
+      border-radius: 50%;
+      animation: spin .6s linear infinite;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    .err-msg {
+      background: rgba(239,68,68,0.08);
+      border: 1px solid rgba(239,68,68,0.2);
+      border-radius: 10px; padding: 10px 14px;
+      font-size: 13px; color: #fca5a5;
+      margin-bottom: 16px;
+    }
+
+    /* ── Tx history ── */
+    .tx-table { width: 100%; border-collapse: collapse; }
+    .tx-table th {
+      text-align: left; font-size: 11px; font-weight: 700;
+      text-transform: uppercase; letter-spacing: .1em;
+      color: var(--muted); padding: 8px 12px;
+      border-bottom: 1px solid var(--border);
+    }
+    .tx-table td { padding: 12px; font-size: 13px; border-bottom: 1px solid rgba(255,255,255,0.04); }
+    .badge {
+      display: inline-block; padding: 3px 8px; border-radius: 999px;
+      font-size: 11px; font-weight: 700;
+    }
+    .badge-ok { background: rgba(16,185,129,0.12); color: #10b981; }
+    .badge-pend { background: rgba(245,158,11,0.12); color: #f59e0b; }
+
+    @media (max-width: 600px) {
+      nav { padding: 16px 20px; }
+      .wallet-card { flex-direction: column; align-items: flex-start; }
+      .balance { font-size: 38px; }
+      .container { padding: 24px 16px; }
+    }
+  </style>
+</head>
+<body>
+
+<div class="orb orb1"></div>
+<div class="orb orb2"></div>
+
+<!-- ── Nav ── -->
+<nav>
+  <div class="logo">NEX<span>PLAY</span></div>
+  <div class="nav-right">
+    <div class="user-chip">
+      <div class="avatar">JD</div>
+      <span>John Doe</span>
+    </div>
+  </div>
+</nav>
+
+<!-- ── Main ── -->
+<div class="container">
+
+  <!-- Wallet Card -->
+  <div class="wallet-card">
+    <div class="wallet-glow"></div>
+    <div class="wallet-info">
+      <h2>⚡ Game Wallet</h2>
+      <div class="balance" id="balance">0.00</div>
+      <div class="balance-sub">USDT Credits · User ID: <code style="color:var(--accent);font-size:11px">user_demo_001</code></div>
+    </div>
+    <div class="wallet-actions">
+      <button class="btn-credit" onclick="openModal()">
+        <span>+</span> Add Credit
+      </button>
+      <button class="btn-ghost">Withdraw</button>
+    </div>
+  </div>
+
+  <!-- Games -->
+  <div class="section-title">Featured Games</div>
+  <div class="games-grid">
+    <div class="game-card">
+      <div class="game-thumb" style="background:linear-gradient(135deg,#1e1b4b,#312e81)">🚀</div>
+      <div class="game-body">
+        <div class="game-name">Space Raiders</div>
+        <div class="game-price"><span class="price-tag">50 USDT</span><button class="btn-buy">Buy</button></div>
+      </div>
+    </div>
+    <div class="game-card">
+      <div class="game-thumb" style="background:linear-gradient(135deg,#064e3b,#065f46)">⚔️</div>
+      <div class="game-body">
+        <div class="game-name">Dragon Quest</div>
+        <div class="game-price"><span class="price-tag">120 USDT</span><button class="btn-buy">Buy</button></div>
+      </div>
+    </div>
+    <div class="game-card">
+      <div class="game-thumb" style="background:linear-gradient(135deg,#450a0a,#7f1d1d)">🏎️</div>
+      <div class="game-body">
+        <div class="game-name">Turbo Circuit</div>
+        <div class="game-price"><span class="price-tag">80 USDT</span><button class="btn-buy">Buy</button></div>
+      </div>
+    </div>
+    <div class="game-card">
+      <div class="game-thumb" style="background:linear-gradient(135deg,#0c4a6e,#075985)">🧩</div>
+      <div class="game-body">
+        <div class="game-name">Puzzle Masters</div>
+        <div class="game-price"><span class="price-tag">30 USDT</span><button class="btn-buy">Buy</button></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Recent Transactions -->
+  <div class="section-title">Recent Transactions</div>
+  <div style="background:var(--surface);border:1px solid var(--border);border-radius:16px;overflow:hidden">
+    <table class="tx-table">
+      <thead>
+        <tr>
+          <th>Type</th><th>Amount</th><th>Currency</th><th>Status</th><th>Date</th>
+        </tr>
+      </thead>
+      <tbody id="tx-body">
+        <tr><td colspan="5" style="text-align:center;color:var(--muted);padding:24px">No transactions yet</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+</div>
+
+<!-- ── Add Credit Modal ── -->
+<div class="modal-overlay" id="modal">
+  <div class="modal">
+    <div class="modal-title">Add Credit</div>
+    <div class="modal-sub">Top up your game wallet with USDT or USDC</div>
+
+    <div class="config-note">
+      ⚙️ <strong style="color:var(--text)">Demo Mode</strong> — configure your SolPay API key and company ID below.<br/>
+      In production, session creation happens <strong>server-side</strong> — API key never exposed to browser.
+    </div>
+
+    <div style="margin-bottom:16px">
+      <label style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);display:block;margin-bottom:6px">SolPay API URL</label>
+      <input id="cfg-api" type="text" value="https://solpay-production.up.railway.app"
+        style="width:100%;background:rgba(255,255,255,0.04);border:1px solid var(--border);border-radius:8px;padding:9px 12px;color:var(--text);font-size:12px;font-family:monospace;outline:none" />
+    </div>
+    <div style="margin-bottom:16px">
+      <label style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);display:block;margin-bottom:6px">API Key</label>
+      <input id="cfg-key" type="text" placeholder="spk_..."
+        style="width:100%;background:rgba(255,255,255,0.04);border:1px solid var(--border);border-radius:8px;padding:9px 12px;color:var(--text);font-size:12px;font-family:monospace;outline:none" />
+    </div>
+    <div style="margin-bottom:20px">
+      <label style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);display:block;margin-bottom:6px">Company ID</label>
+      <input id="cfg-company" type="text" placeholder="company_..."
+        style="width:100%;background:rgba(255,255,255,0.04);border:1px solid var(--border);border-radius:8px;padding:9px 12px;color:var(--text);font-size:12px;font-family:monospace;outline:none" />
+    </div>
+
+    <div id="modal-err" class="err-msg" style="display:none"></div>
+
+    <div class="modal-footer">
+      <button class="btn-ghost" onclick="closeModal()">Cancel</button>
+      <button class="btn-credit" id="proceed-btn" onclick="createSession()">
+        <span id="btn-text">Proceed to Payment</span>
+        <div id="btn-spinner" class="spinner" style="display:none"></div>
+      </button>
+    </div>
+  </div>
+</div>
+
+<script>
+  // ── Load saved config ──
+  const saved = JSON.parse(localStorage.getItem('solpay_demo_cfg') || '{}');
+  if (saved.apiUrl) document.getElementById('cfg-api').value = saved.apiUrl;
+  if (saved.apiKey) document.getElementById('cfg-key').value = saved.apiKey;
+  if (saved.companyId) document.getElementById('cfg-company').value = saved.companyId;
+
+  // ── Fake balance from localStorage ──
+  let balance = parseFloat(localStorage.getItem('demo_balance') || '0');
+  document.getElementById('balance').textContent = balance.toFixed(2);
+
+  // ── Check URL for payment result ──
+  const urlParams = new URLSearchParams(window.location.search);
+  if (urlParams.get('credited')) {
+    const amt = parseFloat(urlParams.get('amount') || '0');
+    if (amt > 0) {
+      balance += amt;
+      localStorage.setItem('demo_balance', balance.toString());
+      document.getElementById('balance').textContent = balance.toFixed(2);
+      addTx('Top Up', amt, urlParams.get('currency') || 'USDT', 'completed');
+      // Clean URL
+      window.history.replaceState({}, '', window.location.pathname);
+    }
+  }
+
+  function openModal() {
+    document.getElementById('modal').classList.add('open');
+  }
+
+  function closeModal() {
+    document.getElementById('modal').classList.remove('open');
+    document.getElementById('modal-err').style.display = 'none';
+  }
+
+  // Close on backdrop click
+  document.getElementById('modal').addEventListener('click', e => {
+    if (e.target === document.getElementById('modal')) closeModal();
+  });
+
+  async function createSession() {
+    const apiUrl    = document.getElementById('cfg-api').value.trim();
+    const apiKey    = document.getElementById('cfg-key').value.trim();
+    const companyId = document.getElementById('cfg-company').value.trim();
+    const errEl     = document.getElementById('modal-err');
+
+    // Save config
+    localStorage.setItem('solpay_demo_cfg', JSON.stringify({ apiUrl, apiKey, companyId }));
+
+    errEl.style.display = 'none';
+
+    if (!apiKey) { showErr('Enter your SolPay API key'); return; }
+    if (!companyId) { showErr('Enter your Company ID'); return; }
+
+    setLoading(true);
+
+    try {
+      const orderId = 'ord_' + Date.now();
+      const res = await fetch(`${apiUrl}/api/company/${companyId}/payment-session`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-Api-Key': apiKey,
+        },
+        body: JSON.stringify({
+          userId: 'user_demo_001',
+          orderId,
+          description: 'NexPlay Wallet Top-Up',
+        }),
+      });
+
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Failed to create payment session');
+
+      // Redirect to SolPay payment page
+      const payUrl = `https://solpay-frontend-gamma.vercel.app/pay?token=${data.token}`;
+      window.location.href = payUrl;
+
+    } catch(e) {
+      setLoading(false);
+      showErr(e.message);
+    }
+  }
+
+  function showErr(msg) {
+    const el = document.getElementById('modal-err');
+    el.textContent = '⚠ ' + msg;
+    el.style.display = 'block';
+  }
+
+  function setLoading(on) {
+    document.getElementById('proceed-btn').disabled = on;
+    document.getElementById('btn-text').textContent = on ? 'Redirecting…' : 'Proceed to Payment';
+    document.getElementById('btn-spinner').style.display = on ? 'block' : 'none';
+  }
+
+  function addTx(type, amount, currency, status) {
+    const tbody = document.getElementById('tx-body');
+    const empty = tbody.querySelector('td[colspan]');
+    if (empty) empty.parentElement.remove();
+    const tr = document.createElement('tr');
+    tr.innerHTML = `
+      <td>${type}</td>
+      <td style="font-family:'Rajdhani',sans-serif;font-weight:700;font-size:16px">${amount.toFixed(2)}</td>
+      <td><span style="color:var(--accent);font-weight:700">${currency}</span></td>
+      <td><span class="badge badge-ok">Confirmed</span></td>
+      <td style="color:var(--muted)">${new Date().toLocaleDateString()}</td>
+    `;
+    tbody.prepend(tr);
+  }
+</script>
+
+</body>
+</html>
