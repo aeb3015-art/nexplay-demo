@@ -245,7 +245,13 @@
       tbody.innerHTML = "";
 
       if (data.payments.length === 0) {
-        tbody.innerHTML = `<tr><td colspan="5" style="text-align:center;color:var(--muted);padding:24px">No transactions yet</td></tr>`;
+        const emptyTr = document.createElement("tr");
+        const emptyTd = document.createElement("td");
+        emptyTd.colSpan = 5;
+        emptyTd.style.cssText = "text-align:center;color:var(--muted);padding:24px";
+        emptyTd.textContent = "No transactions yet";
+        emptyTr.appendChild(emptyTd);
+        tbody.appendChild(emptyTr);
         return;
       }
 
@@ -258,6 +264,9 @@
       localStorage.setItem("demo_balance", balance.toString());
       renderBalance();
 
+      // Only allow known currency strings — never trust raw API strings in DOM
+      const ALLOWED_CURRENCIES = new Set(["SOL", "USDC", "USDT"]);
+
       data.payments.forEach(p => {
         const statusColor = {
           transferred: "#10b981", confirmed: "#f59e0b",
@@ -267,25 +276,69 @@
         const statusLabel = {
           transferred: "Paid", confirmed: "Confirming",
           pending: "Pending", expired: "Expired", sweep_failed: "Failed",
-        }[p.status] || p.status;
+        }[p.status] || "Unknown";
 
-        const cur = p.currency || "—";
+        const cur = ALLOWED_CURRENCIES.has(p.currency) ? p.currency : "—";
         const curColor = cur === "USDT" ? "#26A17B" : cur === "USDC" ? "#2775CA" : "var(--muted)";
         const amt = p.amount ? parseFloat(p.amount).toFixed(2) : "—";
-        const date = new Date(p.createdAt).toLocaleDateString();
 
-        const explorerCell = p.explorerUrl
-          ? `<a href="${p.explorerUrl}" target="_blank" style="color:#9945FF;font-size:10px;font-family:monospace;text-decoration:none">${p.sweepSignature?.slice(0,8) || "View"}… ↗</a>`
-          : "—";
-
+        // Build table row using DOM APIs only — never innerHTML with API data (XSS prevention)
         const tr = document.createElement("tr");
-        tr.innerHTML = `
-          <td>Top Up</td>
-          <td style="font-family:'Rajdhani',sans-serif;font-weight:700;font-size:16px">${amt}</td>
-          <td><span style="color:${curColor};font-weight:700">${cur}</span></td>
-          <td><span style="display:inline-block;padding:3px 8px;border-radius:999px;font-size:11px;font-weight:700;background:${statusColor}20;color:${statusColor}">${statusLabel}</span></td>
-          <td>${explorerCell}</td>
-        `;
+
+        const tdType = document.createElement("td");
+        tdType.textContent = "Top Up";
+        tr.appendChild(tdType);
+
+        const tdAmt = document.createElement("td");
+        tdAmt.style.cssText = "font-family:'Rajdhani',sans-serif;font-weight:700;font-size:16px";
+        tdAmt.textContent = amt;
+        tr.appendChild(tdAmt);
+
+        const tdCur = document.createElement("td");
+        const curSpan = document.createElement("span");
+        curSpan.style.cssText = `color:${curColor};font-weight:700`;
+        curSpan.textContent = cur;
+        tdCur.appendChild(curSpan);
+        tr.appendChild(tdCur);
+
+        const tdStatus = document.createElement("td");
+        const statusSpan = document.createElement("span");
+        statusSpan.style.cssText = `display:inline-block;padding:3px 8px;border-radius:999px;font-size:11px;font-weight:700;background:${statusColor}20;color:${statusColor}`;
+        statusSpan.textContent = statusLabel;
+        tdStatus.appendChild(statusSpan);
+        tr.appendChild(tdStatus);
+
+        const tdExplorer = document.createElement("td");
+        if (p.explorerUrl && typeof p.explorerUrl === "string") {
+          // Validate URL scheme before setting href — blocks javascript: and data: XSS
+          let safeHref = null;
+          try {
+            const parsed = new URL(p.explorerUrl);
+            if (parsed.protocol === "https:" || parsed.protocol === "http:") {
+              safeHref = parsed.href;
+            }
+          } catch (_) {}
+
+          if (safeHref) {
+            const a = document.createElement("a");
+            a.href = safeHref;
+            a.target = "_blank";
+            a.rel = "noopener noreferrer";
+            a.style.cssText = "color:#9945FF;font-size:10px;font-family:monospace;text-decoration:none";
+            // Sanitize sweep signature — only allow alphanumeric characters
+            const sigText = typeof p.sweepSignature === "string"
+              ? p.sweepSignature.replace(/[^a-zA-Z0-9]/g, "").slice(0, 8)
+              : "View";
+            a.textContent = sigText + "… ↗";
+            tdExplorer.appendChild(a);
+          } else {
+            tdExplorer.textContent = "—";
+          }
+        } else {
+          tdExplorer.textContent = "—";
+        }
+        tr.appendChild(tdExplorer);
+
         tbody.appendChild(tr);
       });
     } catch(e) {
