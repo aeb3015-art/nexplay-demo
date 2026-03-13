@@ -186,7 +186,7 @@
   <div class="section-title">Recent Transactions</div>
   <div style="background:var(--surface);border:1px solid var(--border);border-radius:16px;overflow:hidden">
     <table class="tx-table">
-      <thead><tr><th>Type</th><th>Amount</th><th>Currency</th><th>Status</th><th>Date</th></tr></thead>
+      <thead><tr><th>Type</th><th>Amount</th><th>Currency</th><th>Status</th><th>Explorer</th></tr></thead>
       <tbody id="tx-body">
         <tr><td colspan="5" style="text-align:center;color:var(--muted);padding:24px">No transactions yet</td></tr>
       </tbody>
@@ -227,27 +227,73 @@
 </div>
 
 <script>
-  // ── Balance & history (demo — real app uses DB) ──
+  const SOLPAY_API    = "https://solpay-production.up.railway.app";
+  const PUBLIC_KEY    = "pk_9e29c5256cc52baf8a816fc8f149c0ff7a1e8aa2829bbf79";
+  const USER_ID       = "user_demo_001";
+
   let balance = parseFloat(localStorage.getItem("demo_balance") || "0");
   renderBalance();
-  const savedTxs = JSON.parse(localStorage.getItem("demo_txs") || "[]");
-  savedTxs.forEach(tx => addTxRow(tx.type, tx.amount, tx.currency, false));
 
-  // ── Check if returning from payment ──
-  const urlParams = new URLSearchParams(window.location.search);
-  if (urlParams.get("payment") === "confirmed") {
-    const amt = parseFloat(urlParams.get("amount") || "0");
-    const cur = urlParams.get("currency") || "USDT";
-    if (amt > 0) {
-      balance += amt;
+  // ── Load payment history from SolPay ──
+  async function loadHistory() {
+    try {
+      const res = await fetch(`${SOLPAY_API}/api/payment/history?publicKey=${PUBLIC_KEY}&userId=${USER_ID}`);
+      const data = await res.json();
+      if (!data.payments) return;
+
+      const tbody = document.getElementById("tx-body");
+      tbody.innerHTML = "";
+
+      if (data.payments.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="5" style="text-align:center;color:var(--muted);padding:24px">No transactions yet</td></tr>`;
+        return;
+      }
+
+      // Recalculate balance from confirmed payments
+      let total = 0;
+      data.payments.forEach(p => {
+        if (p.status === "transferred" && p.amount) total += parseFloat(p.amount);
+      });
+      balance = total;
       localStorage.setItem("demo_balance", balance.toString());
       renderBalance();
-      addTxRow("Top Up", amt, cur, true);
-      document.getElementById("success-banner").classList.add("show");
-      document.getElementById("success-msg").textContent = `${amt} ${cur} credited to your wallet.`;
+
+      data.payments.forEach(p => {
+        const statusColor = {
+          transferred: "#10b981", confirmed: "#f59e0b",
+          pending: "#3b82f6", expired: "#475569", sweep_failed: "#ef4444",
+        }[p.status] || "#475569";
+
+        const statusLabel = {
+          transferred: "Paid", confirmed: "Confirming",
+          pending: "Pending", expired: "Expired", sweep_failed: "Failed",
+        }[p.status] || p.status;
+
+        const cur = p.currency || "—";
+        const curColor = cur === "USDT" ? "#26A17B" : cur === "USDC" ? "#2775CA" : "var(--muted)";
+        const amt = p.amount ? parseFloat(p.amount).toFixed(2) : "—";
+        const date = new Date(p.createdAt).toLocaleDateString();
+
+        const explorerCell = p.explorerUrl
+          ? `<a href="${p.explorerUrl}" target="_blank" style="color:#9945FF;font-size:10px;font-family:monospace;text-decoration:none">${p.sweepSignature?.slice(0,8) || "View"}… ↗</a>`
+          : "—";
+
+        const tr = document.createElement("tr");
+        tr.innerHTML = `
+          <td>Top Up</td>
+          <td style="font-family:'Rajdhani',sans-serif;font-weight:700;font-size:16px">${amt}</td>
+          <td><span style="color:${curColor};font-weight:700">${cur}</span></td>
+          <td><span style="display:inline-block;padding:3px 8px;border-radius:999px;font-size:11px;font-weight:700;background:${statusColor}20;color:${statusColor}">${statusLabel}</span></td>
+          <td>${explorerCell}</td>
+        `;
+        tbody.appendChild(tr);
+      });
+    } catch(e) {
+      console.error("History load failed:", e);
     }
-    window.history.replaceState({}, "", window.location.pathname);
   }
+
+  loadHistory();
 
   function renderBalance() {
     document.getElementById("balance").textContent = balance.toFixed(2);
@@ -268,32 +314,11 @@
 
   function createSession() {
     closeModal();
-    // ── SolPay SDK does everything — no API key here ──
     SolPay.topup({
-      userId:      "user_demo_001",
+      userId:      USER_ID,
       orderId:     "ord_" + Date.now(),
       description: "NexPlay Wallet Top-Up",
     });
-  }
-
-  function addTxRow(type, amount, currency, save) {
-    const tbody = document.getElementById("tx-body");
-    const empty = tbody.querySelector("td[colspan]");
-    if (empty) empty.parentElement.remove();
-    const tr = document.createElement("tr");
-    tr.innerHTML = `
-      <td>${type}</td>
-      <td style="font-family:'Rajdhani',sans-serif;font-weight:700;font-size:16px">${parseFloat(amount).toFixed(2)}</td>
-      <td><span style="color:var(--accent);font-weight:700">${currency}</span></td>
-      <td><span class="badge badge-ok">Confirmed</span></td>
-      <td style="color:var(--muted)">${new Date().toLocaleDateString()}</td>
-    `;
-    tbody.prepend(tr);
-    if (save) {
-      const txs = JSON.parse(localStorage.getItem("demo_txs") || "[]");
-      txs.unshift({ type, amount, currency });
-      localStorage.setItem("demo_txs", JSON.stringify(txs.slice(0, 20)));
-    }
   }
 </script>
 
