@@ -5,9 +5,12 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>NexPlay — Game Portal</title>
   <!-- SolPay SDK — the only thing needed to accept payments -->
+  <!-- SECURITY: Replace data-public-key with YOUR company public key (pk_xxx).
+       Generate it in the Company Panel → SDK Integration → Public Key.
+       Never commit real public keys to version control. -->
   <script
     src="https://solpay-frontend-gamma.vercel.app/solpay-sdk.js"
-    data-public-key="pk_9e29c5256cc52baf8a816fc8f149c0ff7a1e8aa2829bbf79"
+    data-public-key="pk_YOUR_PUBLIC_KEY_HERE"
   ></script>
   <link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@400;500;600;700&family=Exo+2:wght@300;400;600;700;800&display=swap" rel="stylesheet" />
   <style>
@@ -228,7 +231,8 @@
 
 <script>
   const SOLPAY_API    = "https://solpay-production.up.railway.app";
-  const PUBLIC_KEY    = "pk_9e29c5256cc52baf8a816fc8f149c0ff7a1e8aa2829bbf79";
+  // SECURITY: Replace with your company public key from the Company Panel.
+  const PUBLIC_KEY    = "pk_YOUR_PUBLIC_KEY_HERE";
   const USER_ID       = "user_demo_001";
 
   let balance = parseFloat(localStorage.getItem("demo_balance") || "0");
