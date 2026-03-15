@@ -1,0 +1,816 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>SolStake — Stablecoin Yield on Solana</title>
+  <link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@400;500;600;700&family=Exo+2:wght@300;400;600;700;800&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --bg:       #04070f;
+      --surface:  #080e1c;
+      --surface2: #0d1426;
+      --border:   rgba(0,229,255,0.12);
+      --accent:   #00e5ff;
+      --accent2:  #7c3aed;
+      --green:    #10b981;
+      --gold:     #f59e0b;
+      --red:      #ef4444;
+      --text:     #e2e8f0;
+      --muted:    #475569;
+      --usdc:     #2775CA;
+      --usdt:     #26A17B;
+    }
+    *{margin:0;padding:0;box-sizing:border-box}
+    body{background:var(--bg);color:var(--text);font-family:'Exo 2',sans-serif;min-height:100vh;overflow-x:hidden}
+    body::before{content:"";position:fixed;inset:0;background-image:linear-gradient(rgba(0,229,255,.03) 1px,transparent 1px),linear-gradient(90deg,rgba(0,229,255,.03) 1px,transparent 1px);background-size:40px 40px;pointer-events:none;z-index:0}
+    .orb{position:fixed;border-radius:50%;filter:blur(80px);pointer-events:none;z-index:0}
+    .orb1{width:500px;height:500px;background:rgba(124,58,237,.12);top:-150px;right:-150px}
+    .orb2{width:350px;height:350px;background:rgba(0,229,255,.07);bottom:50px;left:-100px}
+    .orb3{width:250px;height:250px;background:rgba(16,185,129,.06);top:40%;right:10%}
+
+    /* NAV */
+    nav{position:sticky;top:0;z-index:50;display:flex;align-items:center;justify-content:space-between;padding:18px 40px;border-bottom:1px solid var(--border);background:rgba(4,7,15,.85);backdrop-filter:blur(16px)}
+    .logo{font-family:'Rajdhani',sans-serif;font-size:26px;font-weight:700;letter-spacing:.1em;color:var(--accent);text-shadow:0 0 20px rgba(0,229,255,.4)}
+    .logo span{color:var(--accent2)}
+    .logo-sub{font-size:11px;font-weight:600;letter-spacing:.2em;color:var(--muted);text-transform:uppercase;margin-top:-2px}
+    .nav-right{display:flex;align-items:center;gap:12px}
+    .network-badge{display:flex;align-items:center;gap:6px;padding:6px 12px;background:rgba(16,185,129,.08);border:1px solid rgba(16,185,129,.2);border-radius:999px;font-size:12px;font-weight:600;color:var(--green)}
+    .dot{width:7px;height:7px;border-radius:50%;background:var(--green);box-shadow:0 0 6px var(--green);animation:pulse 2s ease-in-out infinite}
+    @keyframes pulse{0%,100%{opacity:1}50%{opacity:.5}}
+    .btn-connect{display:flex;align-items:center;gap:8px;padding:10px 22px;background:linear-gradient(135deg,var(--accent2),#5b21b6);border:none;border-radius:12px;color:#fff;font-family:'Exo 2',sans-serif;font-size:14px;font-weight:700;cursor:pointer;transition:all .2s;letter-spacing:.03em}
+    .btn-connect:hover{transform:translateY(-1px);box-shadow:0 8px 24px rgba(124,58,237,.4)}
+    .btn-connect:disabled{opacity:.6;cursor:not-allowed;transform:none}
+    .wallet-chip{display:flex;align-items:center;gap:8px;padding:8px 16px;background:rgba(124,58,237,.12);border:1px solid rgba(124,58,237,.3);border-radius:999px;font-size:13px;font-weight:600;cursor:pointer;transition:all .2s}
+    .wallet-chip:hover{background:rgba(124,58,237,.2)}
+    .wallet-icon{width:20px;height:20px;border-radius:50%;background:linear-gradient(135deg,var(--accent2),var(--accent))}
+
+    /* LAYOUT */
+    .container{position:relative;z-index:1;max-width:1140px;margin:0 auto;padding:40px 24px}
+
+    /* HERO STATS */
+    .stats-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:16px;margin-bottom:40px}
+    .stat-card{background:linear-gradient(135deg,rgba(8,14,28,.9),rgba(13,20,38,.9));border:1px solid var(--border);border-radius:18px;padding:24px;position:relative;overflow:hidden;transition:border-color .2s}
+    .stat-card:hover{border-color:rgba(0,229,255,.25)}
+    .stat-card::before{content:"";position:absolute;top:0;left:0;right:0;height:1px;background:linear-gradient(90deg,transparent,var(--accent),transparent);opacity:.4}
+    .stat-label{font-size:11px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);margin-bottom:10px}
+    .stat-val{font-family:'Rajdhani',sans-serif;font-size:32px;font-weight:700;line-height:1;background:linear-gradient(135deg,#fff 0%,var(--accent) 100%);-webkit-background-clip:text;-webkit-text-fill-color:transparent}
+    .stat-sub{font-size:12px;color:var(--muted);margin-top:6px}
+    .stat-change{display:inline-flex;align-items:center;gap:3px;font-size:11px;font-weight:700;padding:2px 7px;border-radius:999px;margin-top:6px}
+    .up{background:rgba(16,185,129,.12);color:var(--green)}
+
+    /* SECTION TITLE */
+    .section-title{font-family:'Rajdhani',sans-serif;font-size:20px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--accent);margin-bottom:20px;display:flex;align-items:center;gap:10px}
+    .section-title::after{content:"";flex:1;height:1px;background:linear-gradient(90deg,rgba(0,229,255,.2),transparent)}
+
+    /* POOLS */
+    .pools-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(320px,1fr));gap:20px;margin-bottom:40px}
+    .pool-card{background:linear-gradient(135deg,rgba(8,14,28,.95),rgba(13,20,38,.9));border:1px solid var(--border);border-radius:22px;padding:28px;position:relative;overflow:hidden;transition:all .3s}
+    .pool-card:hover{transform:translateY(-4px);box-shadow:0 20px 50px rgba(0,0,0,.4);border-color:rgba(0,229,255,.2)}
+    .pool-card.featured{border-color:rgba(124,58,237,.3)}
+    .pool-card.featured::before{content:"";position:absolute;top:0;left:0;right:0;height:2px;background:linear-gradient(90deg,var(--accent2),var(--accent))}
+    .pool-badge{position:absolute;top:18px;right:18px;padding:4px 10px;border-radius:999px;font-size:11px;font-weight:700;letter-spacing:.05em}
+    .badge-hot{background:rgba(245,158,11,.12);color:var(--gold);border:1px solid rgba(245,158,11,.25)}
+    .badge-new{background:rgba(124,58,237,.12);color:#a78bfa;border:1px solid rgba(124,58,237,.3)}
+    .badge-stable{background:rgba(16,185,129,.08);color:var(--green);border:1px solid rgba(16,185,129,.2)}
+    .pool-header{display:flex;align-items:center;gap:14px;margin-bottom:22px}
+    .pool-icons{display:flex;align-items:center}
+    .token-icon{width:42px;height:42px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:18px;font-weight:800;border:2px solid var(--bg)}
+    .token-icon:nth-child(2){margin-left:-10px}
+    .pool-name{font-family:'Rajdhani',sans-serif;font-size:22px;font-weight:700;letter-spacing:.04em}
+    .pool-protocol{font-size:12px;color:var(--muted);margin-top:2px}
+    .pool-metrics{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:22px}
+    .metric{background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.06);border-radius:12px;padding:14px}
+    .metric-label{font-size:11px;color:var(--muted);margin-bottom:4px;letter-spacing:.06em;text-transform:uppercase}
+    .metric-val{font-family:'Rajdhani',sans-serif;font-size:22px;font-weight:700}
+    .metric-val.apy{background:linear-gradient(135deg,var(--green),#34d399);-webkit-background-clip:text;-webkit-text-fill-color:transparent}
+    .metric-val.tvl{color:var(--text)}
+    .pool-progress{margin-bottom:20px}
+    .progress-label{display:flex;justify-content:space-between;font-size:12px;color:var(--muted);margin-bottom:6px}
+    .progress-bar{height:5px;background:rgba(255,255,255,.06);border-radius:999px;overflow:hidden}
+    .progress-fill{height:100%;border-radius:999px}
+    .pool-actions{display:flex;gap:10px}
+    .btn-stake{flex:1;padding:13px;background:linear-gradient(135deg,#00e5ff,#0077b6);border:none;border-radius:12px;color:#04070f;font-family:'Exo 2',sans-serif;font-size:14px;font-weight:800;cursor:pointer;transition:all .2s;letter-spacing:.03em}
+    .btn-stake:hover{transform:translateY(-1px);box-shadow:0 8px 24px rgba(0,229,255,.35)}
+    .btn-stake:disabled{opacity:.4;cursor:not-allowed;transform:none;box-shadow:none}
+    .btn-outline{padding:13px 18px;background:transparent;border:1px solid var(--border);border-radius:12px;color:var(--muted);font-family:'Exo 2',sans-serif;font-size:13px;font-weight:600;cursor:pointer;transition:all .2s}
+    .btn-outline:hover{border-color:rgba(0,229,255,.3);color:var(--text)}
+
+    /* POSITIONS */
+    .positions-section{margin-bottom:40px}
+    .position-card{background:linear-gradient(135deg,rgba(8,14,28,.95),rgba(13,20,38,.9));border:1px solid var(--border);border-radius:18px;padding:24px;margin-bottom:12px;display:flex;align-items:center;gap:20px;transition:border-color .2s}
+    .position-card:hover{border-color:rgba(0,229,255,.2)}
+    .pos-token{display:flex;align-items:center;gap:10px;min-width:130px}
+    .pos-token-icon{width:36px;height:36px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:15px;font-weight:800}
+    .pos-token-name{font-family:'Rajdhani',sans-serif;font-size:17px;font-weight:700}
+    .pos-token-sub{font-size:11px;color:var(--muted)}
+    .pos-stat{flex:1;text-align:center}
+    .pos-stat-label{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;margin-bottom:4px}
+    .pos-stat-val{font-family:'Rajdhani',sans-serif;font-size:18px;font-weight:700}
+    .pos-actions{display:flex;gap:8px}
+    .btn-claim{padding:10px 18px;background:rgba(16,185,129,.1);border:1px solid rgba(16,185,129,.25);border-radius:10px;color:var(--green);font-family:'Exo 2',sans-serif;font-size:13px;font-weight:700;cursor:pointer;transition:all .2s}
+    .btn-claim:hover{background:rgba(16,185,129,.2)}
+    .btn-unstake-pos{padding:10px 16px;background:rgba(239,68,68,.07);border:1px solid rgba(239,68,68,.2);border-radius:10px;color:#fca5a5;font-family:'Exo 2',sans-serif;font-size:13px;font-weight:700;cursor:pointer;transition:all .2s}
+    .btn-unstake-pos:hover{background:rgba(239,68,68,.15)}
+    .empty-state{text-align:center;padding:40px;color:var(--muted);border:1px dashed rgba(255,255,255,.08);border-radius:16px}
+    .empty-icon{font-size:42px;margin-bottom:12px}
+
+    /* TX TABLE */
+    .tx-table{width:100%;border-collapse:collapse}
+    .tx-table th{text-align:left;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:var(--muted);padding:10px 14px;border-bottom:1px solid var(--border)}
+    .tx-table td{padding:13px 14px;font-size:13px;border-bottom:1px solid rgba(255,255,255,.04)}
+    .tx-table tbody tr:hover{background:rgba(255,255,255,.02)}
+    .tx-type-wrap{display:flex;align-items:center;gap:8px}
+    .tx-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0}
+
+    /* MODAL */
+    .modal-overlay{position:fixed;inset:0;z-index:200;background:rgba(4,7,15,.85);backdrop-filter:blur(10px);display:flex;align-items:center;justify-content:center;opacity:0;pointer-events:none;transition:opacity .25s}
+    .modal-overlay.open{opacity:1;pointer-events:all}
+    .modal{background:var(--surface2);border:1px solid rgba(0,229,255,.18);border-radius:26px;padding:36px;width:100%;max-width:440px;transform:translateY(20px) scale(.97);transition:transform .3s;position:relative}
+    .modal-overlay.open .modal{transform:translateY(0) scale(1)}
+    .modal::before{content:"";position:absolute;top:0;left:0;right:0;height:1px;border-radius:26px 26px 0 0;background:linear-gradient(90deg,transparent,var(--accent),transparent);opacity:.4}
+    .modal-close{position:absolute;top:18px;right:18px;background:rgba(255,255,255,.06);border:none;border-radius:8px;width:32px;height:32px;color:var(--muted);font-size:16px;cursor:pointer;transition:all .2s;display:flex;align-items:center;justify-content:center}
+    .modal-close:hover{background:rgba(255,255,255,.1);color:var(--text)}
+    .modal-title{font-family:'Rajdhani',sans-serif;font-size:26px;font-weight:700;letter-spacing:.06em;color:var(--accent);margin-bottom:4px}
+    .modal-sub{font-size:13px;color:var(--muted);margin-bottom:28px}
+    .input-group{margin-bottom:20px}
+    .input-label{font-size:12px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.08em;margin-bottom:8px}
+    .input-wrap{position:relative;display:flex;align-items:center}
+    .amount-input{width:100%;padding:16px 80px 16px 16px;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.1);border-radius:14px;color:var(--text);font-family:'Exo 2',sans-serif;font-size:18px;font-weight:700;outline:none;transition:border-color .2s}
+    .amount-input:focus{border-color:rgba(0,229,255,.4)}
+    .amount-input::placeholder{color:var(--muted);font-size:15px;font-weight:400}
+    .input-currency{position:absolute;right:14px;font-size:13px;font-weight:700;color:var(--muted)}
+    .input-hint{display:flex;justify-content:space-between;margin-top:8px;font-size:12px;color:var(--muted)}
+    .input-hint button{background:none;border:none;color:var(--accent);font-size:12px;font-weight:700;cursor:pointer;font-family:'Exo 2',sans-serif}
+    .info-box{background:rgba(0,229,255,.04);border:1px solid rgba(0,229,255,.1);border-radius:14px;padding:16px;margin-bottom:20px}
+    .info-row{display:flex;justify-content:space-between;align-items:center;padding:5px 0;font-size:13px}
+    .info-row .lbl{color:var(--muted)}
+    .info-row .val{font-weight:700;color:var(--text)}
+    .info-row .val.green{color:var(--green)}
+    .modal-actions{display:flex;gap:10px;margin-top:6px}
+    .modal-actions .btn-stake{font-size:15px;padding:15px}
+    .modal-actions .btn-outline{font-size:14px;padding:15px 20px}
+    .err-msg{background:rgba(239,68,68,.08);border:1px solid rgba(239,68,68,.2);border-radius:10px;padding:10px 14px;font-size:13px;color:#fca5a5;margin-bottom:16px}
+
+    /* SPINNER */
+    .spinner{width:18px;height:18px;border:2px solid rgba(255,255,255,.2);border-top-color:#fff;border-radius:50%;animation:spin .6s linear infinite;display:inline-block;vertical-align:middle}
+    .spinner.dark{border-color:rgba(4,7,15,.2);border-top-color:#04070f}
+    @keyframes spin{to{transform:rotate(360deg)}}
+
+    /* TOAST */
+    .toast{position:fixed;bottom:28px;right:28px;z-index:300;background:rgba(8,14,28,.96);border:1px solid rgba(16,185,129,.3);border-radius:14px;padding:16px 20px;display:flex;align-items:center;gap:12px;font-size:14px;font-weight:600;transform:translateY(80px);opacity:0;transition:all .35s;pointer-events:none;max-width:380px}
+    .toast.show{transform:translateY(0);opacity:1}
+    .toast.error{border-color:rgba(239,68,68,.3);color:#fca5a5}
+    .toast-icon{font-size:20px;flex-shrink:0}
+
+    /* RESPONSIVE */
+    @media(max-width:768px){
+      nav{padding:14px 20px}
+      .stats-grid{grid-template-columns:repeat(2,1fr)}
+      .pools-grid{grid-template-columns:1fr}
+      .container{padding:24px 16px}
+      .position-card{flex-direction:column;align-items:flex-start;gap:14px}
+      .pos-stat{text-align:left}
+      .pos-actions{width:100%}
+    }
+    @media(max-width:480px){
+      .stat-val{font-size:24px}
+      .modal{padding:24px}
+    }
+  </style>
+</head>
+<body>
+
+<div class="orb orb1"></div>
+<div class="orb orb2"></div>
+<div class="orb orb3"></div>
+
+<!-- NAV -->
+<nav>
+  <div>
+    <div class="logo">SOL<span>STAKE</span></div>
+    <div class="logo-sub">Stablecoin Yield · Solana</div>
+  </div>
+  <div class="nav-right">
+    <div class="network-badge"><span class="dot"></span>Solana Mainnet</div>
+    <button class="btn-connect" id="connect-btn" onclick="connectWallet()">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 7V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v2"/></svg>
+      Connect Wallet
+    </button>
+  </div>
+</nav>
+
+<div class="container">
+
+  <!-- Stats -->
+  <div class="stats-grid">
+    <div class="stat-card">
+      <div class="stat-label">Total Value Locked</div>
+      <div class="stat-val">$24.8M</div>
+      <div class="stat-change up">▲ 3.2% this week</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">Your Staked</div>
+      <div class="stat-val" id="stat-staked">$0.00</div>
+      <div class="stat-sub" id="stat-staked-sub">Connect wallet to view</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">Pending Rewards</div>
+      <div class="stat-val" id="stat-rewards" style="-webkit-text-fill-color:var(--green)">$0.00</div>
+      <div class="stat-sub" id="stat-rewards-sub">—</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">Best APY</div>
+      <div class="stat-val">15.4%</div>
+      <div class="stat-sub">USDC/USDT LP Pool</div>
+    </div>
+  </div>
+
+  <!-- Pools -->
+  <div class="section-title">Staking Pools</div>
+  <div class="pools-grid">
+
+    <!-- USDC -->
+    <div class="pool-card">
+      <span class="pool-badge badge-stable">Stable</span>
+      <div class="pool-header">
+        <div class="pool-icons">
+          <div class="token-icon" style="background:linear-gradient(135deg,#1a3a6e,#2775CA)">$</div>
+        </div>
+        <div>
+          <div class="pool-name">USDC Vault</div>
+          <div class="pool-protocol">Single-sided · USD Coin</div>
+        </div>
+      </div>
+      <div class="pool-metrics">
+        <div class="metric"><div class="metric-label">APY</div><div class="metric-val apy">8.5%</div></div>
+        <div class="metric"><div class="metric-label">TVL</div><div class="metric-val tvl">$8.3M</div></div>
+        <div class="metric"><div class="metric-label">Min Stake</div><div class="metric-val tvl" style="font-size:17px">10 USDC</div></div>
+        <div class="metric"><div class="metric-label">Lock Period</div><div class="metric-val tvl" style="font-size:17px">None</div></div>
+      </div>
+      <div class="pool-progress">
+        <div class="progress-label"><span>Capacity</span><span>83%</span></div>
+        <div class="progress-bar"><div class="progress-fill" style="width:83%;background:linear-gradient(90deg,var(--usdc),#60a5fa)"></div></div>
+      </div>
+      <div class="pool-actions">
+        <button class="btn-stake" onclick="openStakeModal('USDC',8.5,'None')">Stake USDC</button>
+        <button class="btn-outline" onclick="openInfoModal('USDC Vault','Single-sided USDC staking. Funds are deployed to a lending protocol on Solana to generate yield. No impermanent loss. Withdrawals are instant.','8.5%','$8.3M','Low','None')">Info</button>
+      </div>
+    </div>
+
+    <!-- USDT -->
+    <div class="pool-card">
+      <span class="pool-badge badge-hot">🔥 Hot</span>
+      <div class="pool-header">
+        <div class="pool-icons">
+          <div class="token-icon" style="background:linear-gradient(135deg,#0d3324,#26A17B)">₮</div>
+        </div>
+        <div>
+          <div class="pool-name">USDT Vault</div>
+          <div class="pool-protocol">Single-sided · Tether USD</div>
+        </div>
+      </div>
+      <div class="pool-metrics">
+        <div class="metric"><div class="metric-label">APY</div><div class="metric-val apy">9.2%</div></div>
+        <div class="metric"><div class="metric-label">TVL</div><div class="metric-val tvl">$11.1M</div></div>
+        <div class="metric"><div class="metric-label">Min Stake</div><div class="metric-val tvl" style="font-size:17px">10 USDT</div></div>
+        <div class="metric"><div class="metric-label">Lock Period</div><div class="metric-val tvl" style="font-size:17px">None</div></div>
+      </div>
+      <div class="pool-progress">
+        <div class="progress-label"><span>Capacity</span><span>71%</span></div>
+        <div class="progress-bar"><div class="progress-fill" style="width:71%;background:linear-gradient(90deg,var(--usdt),#34d399)"></div></div>
+      </div>
+      <div class="pool-actions">
+        <button class="btn-stake" onclick="openStakeModal('USDT',9.2,'None')">Stake USDT</button>
+        <button class="btn-outline" onclick="openInfoModal('USDT Vault','Single-sided USDT staking. Funds earn yield via a money-market protocol on Solana. Withdrawals are instant.','9.2%','$11.1M','Low','None')">Info</button>
+      </div>
+    </div>
+
+    <!-- LP -->
+    <div class="pool-card featured">
+      <span class="pool-badge badge-new">⚡ Boosted</span>
+      <div class="pool-header">
+        <div class="pool-icons">
+          <div class="token-icon" style="background:linear-gradient(135deg,#1a3a6e,#2775CA)">$</div>
+          <div class="token-icon" style="background:linear-gradient(135deg,#0d3324,#26A17B)">₮</div>
+        </div>
+        <div>
+          <div class="pool-name">USDC / USDT LP</div>
+          <div class="pool-protocol">Liquidity Pair · Boosted Yield</div>
+        </div>
+      </div>
+      <div class="pool-metrics">
+        <div class="metric"><div class="metric-label">APY</div><div class="metric-val apy">15.4%</div></div>
+        <div class="metric"><div class="metric-label">TVL</div><div class="metric-val tvl">$5.4M</div></div>
+        <div class="metric"><div class="metric-label">Min Stake</div><div class="metric-val tvl" style="font-size:17px">50 each</div></div>
+        <div class="metric"><div class="metric-label">Lock Period</div><div class="metric-val tvl" style="font-size:17px">7 days</div></div>
+      </div>
+      <div class="pool-progress">
+        <div class="progress-label"><span>Capacity</span><span>44%</span></div>
+        <div class="progress-bar"><div class="progress-fill" style="width:44%;background:linear-gradient(90deg,var(--accent2),var(--accent))"></div></div>
+      </div>
+      <div class="pool-actions">
+        <button class="btn-stake" onclick="openStakeModal('USDC/USDT LP',15.4,'7 days')">Stake LP</button>
+        <button class="btn-outline" onclick="openInfoModal('USDC/USDT LP','Provide liquidity to the stable pair and earn boosted rewards. Minimal impermanent loss. A 7-day unlock period applies on withdrawal.','15.4%','$5.4M','Low–Medium','7 days')">Info</button>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- Positions -->
+  <div class="section-title">Your Positions</div>
+  <div id="positions-section" class="positions-section">
+    <div class="empty-state" id="empty-positions">
+      <div class="empty-icon">🔒</div>
+      <div id="empty-positions-text">Connect your wallet and stake to start earning</div>
+    </div>
+  </div>
+
+  <!-- History -->
+  <div class="section-title">Transaction History</div>
+  <div style="background:var(--surface);border:1px solid var(--border);border-radius:18px;overflow:hidden;margin-bottom:60px">
+    <table class="tx-table">
+      <thead>
+        <tr>
+          <th>Action</th><th>Asset</th><th>Amount</th><th>APY</th><th>Time</th><th>Status</th>
+        </tr>
+      </thead>
+      <tbody id="tx-body">
+        <tr><td colspan="6" style="text-align:center;color:var(--muted);padding:28px">No transactions yet</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+</div>
+
+<!-- STAKE MODAL -->
+<div class="modal-overlay" id="stake-modal">
+  <div class="modal">
+    <button class="modal-close" onclick="closeModal('stake-modal')">✕</button>
+    <div class="modal-title" id="sm-title">Stake USDC</div>
+    <div class="modal-sub" id="sm-sub">Enter amount to stake</div>
+    <div class="input-group">
+      <div class="input-label">Amount</div>
+      <div class="input-wrap">
+        <input class="amount-input" type="number" id="sm-amount" placeholder="0.00" min="0" step="0.01" oninput="updateStakePreview()" />
+        <span class="input-currency" id="sm-currency">USDC</span>
+      </div>
+      <div class="input-hint">
+        <span>Balance: <span id="sm-balance">—</span></span>
+        <button onclick="useMax('sm-amount','sm-balance-raw')">MAX</button>
+      </div>
+    </div>
+    <div class="info-box">
+      <div class="info-row"><span class="lbl">Pool APY</span><span class="val green" id="sm-apy">—</span></div>
+      <div class="info-row"><span class="lbl">Daily Earnings (est.)</span><span class="val green" id="sm-daily">—</span></div>
+      <div class="info-row"><span class="lbl">Annual Earnings (est.)</span><span class="val green" id="sm-annual">—</span></div>
+      <div class="info-row"><span class="lbl">Lock Period</span><span class="val" id="sm-lock">None</span></div>
+    </div>
+    <div class="err-msg" id="sm-err" style="display:none"></div>
+    <div class="modal-actions">
+      <button class="btn-outline" onclick="closeModal('stake-modal')">Cancel</button>
+      <button class="btn-stake" id="sm-btn" onclick="execStake()">
+        <span id="sm-btn-text">Confirm Stake</span>
+        <span id="sm-spinner" class="spinner dark" style="display:none"></span>
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- UNSTAKE MODAL -->
+<div class="modal-overlay" id="unstake-modal">
+  <div class="modal">
+    <button class="modal-close" onclick="closeModal('unstake-modal')">✕</button>
+    <div class="modal-title">Unstake</div>
+    <div class="modal-sub" id="um-sub">Withdraw your staked tokens</div>
+    <div class="input-group">
+      <div class="input-label">Amount to Unstake</div>
+      <div class="input-wrap">
+        <input class="amount-input" type="number" id="um-amount" placeholder="0.00" min="0" step="0.01" />
+        <span class="input-currency" id="um-currency">USDC</span>
+      </div>
+      <div class="input-hint">
+        <span>Staked: <span id="um-staked">—</span></span>
+        <button onclick="useMax('um-amount','um-staked-raw')">MAX</button>
+      </div>
+    </div>
+    <div class="info-box">
+      <div class="info-row"><span class="lbl">Pending Rewards</span><span class="val green" id="um-rewards">—</span></div>
+      <div class="info-row"><span class="lbl">Rewards Auto-Claimed</span><span class="val">Yes</span></div>
+      <div class="info-row"><span class="lbl">Withdrawal Delay</span><span class="val" id="um-delay">Instant</span></div>
+    </div>
+    <div class="err-msg" id="um-err" style="display:none"></div>
+    <div class="modal-actions">
+      <button class="btn-outline" onclick="closeModal('unstake-modal')">Cancel</button>
+      <button class="btn-stake" style="background:linear-gradient(135deg,#ef4444,#b91c1c)" id="um-btn" onclick="execUnstake()">
+        <span id="um-btn-text">Confirm Unstake</span>
+        <span id="um-spinner" class="spinner" style="display:none"></span>
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- INFO MODAL -->
+<div class="modal-overlay" id="info-modal">
+  <div class="modal" style="max-width:400px">
+    <button class="modal-close" onclick="closeModal('info-modal')">✕</button>
+    <div class="modal-title" id="im-title">Pool Info</div>
+    <div style="font-size:14px;color:var(--muted);margin-bottom:24px;line-height:1.6" id="im-desc"></div>
+    <div class="info-box">
+      <div class="info-row"><span class="lbl">APY</span><span class="val green" id="im-apy">—</span></div>
+      <div class="info-row"><span class="lbl">TVL</span><span class="val" id="im-tvl">—</span></div>
+      <div class="info-row"><span class="lbl">Risk Level</span><span class="val" id="im-risk">—</span></div>
+      <div class="info-row"><span class="lbl">Lock Period</span><span class="val" id="im-lock">—</span></div>
+    </div>
+    <button class="btn-stake" style="width:100%" onclick="closeModal('info-modal')">Got it</button>
+  </div>
+</div>
+
+<!-- TOAST -->
+<div class="toast" id="toast"><span class="toast-icon" id="toast-icon">✅</span><span id="toast-msg"></span></div>
+
+<script>
+// ── STATE ──────────────────────────────────────────────────
+let walletConnected = false;
+let walletAddress   = null;
+let activePool      = null;
+let activeAPY       = 0;
+let activeLock      = "None";
+let unstakePosId    = null;
+
+// Demo wallet balances
+const demoBalances = { USDC: 1250.00, USDT: 830.50, "USDC/USDT LP": 0 };
+// Tracks raw max for MAX button
+let smBalanceRaw = 0;
+let umStakedRaw  = 0;
+
+// ── STORAGE ───────────────────────────────────────────────
+function getPositions() {
+  try { return JSON.parse(localStorage.getItem("ss_pos") || "[]"); } catch(_) { return []; }
+}
+function savePositions(p) { localStorage.setItem("ss_pos", JSON.stringify(p)); }
+function getHistory() {
+  try { return JSON.parse(localStorage.getItem("ss_hist") || "[]"); } catch(_) { return []; }
+}
+function saveHistory(h) { localStorage.setItem("ss_hist", JSON.stringify(h)); }
+
+// ── WALLET ─────────────────────────────────────────────────
+async function connectWallet() {
+  const btn = document.getElementById("connect-btn");
+  btn.disabled = true;
+  btn.innerHTML = `<span class="spinner" style="border-top-color:#fff"></span> Connecting…`;
+  try {
+    if (window.solana && window.solana.isPhantom) {
+      const resp = await window.solana.connect();
+      walletAddress = resp.publicKey.toString();
+    } else {
+      await sleep(900);
+      walletAddress = "Demo" + Math.random().toString(36).slice(2,5).toUpperCase() + "…" + Math.random().toString(36).slice(2,6).toUpperCase();
+    }
+    walletConnected = true;
+    const short = walletAddress.length > 14
+      ? walletAddress.slice(0,5) + "…" + walletAddress.slice(-4)
+      : walletAddress;
+    btn.outerHTML = `<div class="wallet-chip" id="connect-btn" onclick="disconnectWallet()">
+      <div class="wallet-icon"></div><span>${short}</span><span style="color:var(--muted);font-size:11px">✕</span>
+    </div>`;
+    refreshStats(); renderPositions();
+    showToast("Wallet connected");
+  } catch(e) {
+    btn.disabled = false;
+    btn.innerHTML = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 7V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v2"/></svg> Connect Wallet`;
+    showToast("Connection cancelled", true);
+  }
+}
+function disconnectWallet() {
+  if (window.solana && window.solana.disconnect) window.solana.disconnect();
+  walletConnected = false; walletAddress = null;
+  document.getElementById("connect-btn").outerHTML =
+    `<button class="btn-connect" id="connect-btn" onclick="connectWallet()">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 7V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v2"/></svg>
+      Connect Wallet
+    </button>`;
+  refreshStats(); renderPositions();
+  showToast("Wallet disconnected");
+}
+
+// ── STATS ──────────────────────────────────────────────────
+function refreshStats() {
+  const pos = getPositions();
+  const staked  = pos.reduce((s,p) => s + p.amount, 0);
+  const rewards = pos.reduce((s,p) => s + pendingRewards(p), 0);
+  document.getElementById("stat-staked").textContent = "$" + staked.toFixed(2);
+  document.getElementById("stat-staked-sub").textContent = walletConnected
+    ? (pos.length + " position" + (pos.length !== 1 ? "s" : "")) : "Connect wallet to view";
+  document.getElementById("stat-rewards").textContent = "$" + rewards.toFixed(4);
+  document.getElementById("stat-rewards-sub").textContent = rewards > 0 ? "Ready to claim"
+    : (walletConnected ? "Stake to start earning" : "—");
+}
+function pendingRewards(p) {
+  const secs = (Date.now() - p.stakedAt) / 1000;
+  return secs * (p.amount * p.apy / 100) / (365 * 86400);
+}
+
+// ── STAKE MODAL ────────────────────────────────────────────
+function openStakeModal(pool, apy, lock) {
+  if (!walletConnected) { showToast("Connect your wallet first", true); return; }
+  activePool = pool; activeAPY = apy; activeLock = lock;
+  const cur = pool.length > 6 ? "LP" : pool;
+  const bal = demoBalances[pool] || 0;
+  smBalanceRaw = bal;
+  document.getElementById("sm-title").textContent = "Stake " + pool;
+  document.getElementById("sm-sub").textContent   = apy + "% APY · " + (lock === "None" ? "No lock" : lock + " lock");
+  document.getElementById("sm-currency").textContent = cur;
+  document.getElementById("sm-balance").textContent  = bal.toFixed(2) + " " + cur;
+  document.getElementById("sm-apy").textContent  = apy + "%";
+  document.getElementById("sm-lock").textContent = lock;
+  document.getElementById("sm-amount").value     = "";
+  document.getElementById("sm-daily").textContent = "—";
+  document.getElementById("sm-annual").textContent = "—";
+  document.getElementById("sm-err").style.display = "none";
+  openModal("stake-modal");
+}
+function updateStakePreview() {
+  const amt = parseFloat(document.getElementById("sm-amount").value) || 0;
+  document.getElementById("sm-daily").textContent  = amt > 0 ? "$" + ((amt * activeAPY / 100) / 365).toFixed(4) : "—";
+  document.getElementById("sm-annual").textContent = amt > 0 ? "$" + (amt * activeAPY / 100).toFixed(2) : "—";
+}
+async function execStake() {
+  const amt = parseFloat(document.getElementById("sm-amount").value);
+  const err = document.getElementById("sm-err");
+  err.style.display = "none";
+  if (!amt || amt <= 0)            { showErr(err, "Enter a valid amount"); return; }
+  if (amt > smBalanceRaw)          { showErr(err, "Insufficient balance"); return; }
+  if (activePool === "USDC"  && amt < 10)  { showErr(err, "Minimum stake is 10 USDC"); return; }
+  if (activePool === "USDT"  && amt < 10)  { showErr(err, "Minimum stake is 10 USDT"); return; }
+  if (activePool.includes("LP") && amt < 50) { showErr(err, "Minimum stake is 50 LP tokens"); return; }
+
+  setLoading("sm-btn","sm-btn-text","sm-spinner", true);
+  await sleep(1400);
+
+  demoBalances[activePool] -= amt;
+  const pos = getPositions();
+  pos.push({ id: "p" + Date.now(), pool: activePool, amount: amt, apy: activeAPY, stakedAt: Date.now() });
+  savePositions(pos);
+  const hist = getHistory();
+  hist.unshift({ type:"Stake", pool:activePool, amount:amt, apy:activeAPY, time:Date.now() });
+  saveHistory(hist);
+
+  setLoading("sm-btn","sm-btn-text","sm-spinner", false);
+  closeModal("stake-modal");
+  refreshStats(); renderPositions(); renderHistory();
+  showToast("Staked " + amt.toFixed(2) + " " + activePool + " at " + activeAPY + "% APY");
+}
+
+// ── UNSTAKE MODAL ──────────────────────────────────────────
+function openUnstakeModal(posId) {
+  const pos = getPositions().find(p => p.id === posId);
+  if (!pos) return;
+  unstakePosId = posId;
+  const cur = pos.pool.length > 6 ? "LP" : pos.pool;
+  umStakedRaw = pos.amount;
+  document.getElementById("um-sub").textContent    = pos.pool + " · " + pos.apy + "% APY";
+  document.getElementById("um-currency").textContent = cur;
+  document.getElementById("um-staked").textContent   = pos.amount.toFixed(2) + " " + cur;
+  document.getElementById("um-rewards").textContent  = "$" + pendingRewards(pos).toFixed(4);
+  document.getElementById("um-delay").textContent    = pos.pool.includes("LP") ? "7 days" : "Instant";
+  document.getElementById("um-amount").value         = "";
+  document.getElementById("um-err").style.display    = "none";
+  openModal("unstake-modal");
+}
+async function execUnstake() {
+  const amt = parseFloat(document.getElementById("um-amount").value);
+  const err = document.getElementById("um-err");
+  err.style.display = "none";
+  if (!amt || amt <= 0)    { showErr(err, "Enter a valid amount"); return; }
+  if (amt > umStakedRaw)   { showErr(err, "Exceeds staked balance (" + umStakedRaw.toFixed(2) + ")"); return; }
+
+  setLoading("um-btn","um-btn-text","um-spinner", true);
+  await sleep(1400);
+
+  const positions = getPositions();
+  const idx = positions.findIndex(p => p.id === unstakePosId);
+  const pos = positions[idx];
+  const rewards = pendingRewards(pos);
+
+  demoBalances[pos.pool] = (demoBalances[pos.pool] || 0) + amt;
+  demoBalances["USDC"]   = (demoBalances["USDC"]   || 0) + rewards;
+
+  if (amt >= pos.amount) { positions.splice(idx, 1); }
+  else { positions[idx].amount -= amt; positions[idx].stakedAt = Date.now(); }
+  savePositions(positions);
+
+  const hist = getHistory();
+  hist.unshift({ type:"Unstake", pool:pos.pool, amount:amt, apy:pos.apy, time:Date.now() });
+  if (rewards > 0.0001) hist.unshift({ type:"Claim", pool:pos.pool, amount:rewards, apy:pos.apy, time:Date.now() });
+  saveHistory(hist);
+
+  setLoading("um-btn","um-btn-text","um-spinner", false);
+  closeModal("unstake-modal");
+  refreshStats(); renderPositions(); renderHistory();
+  showToast("Unstaked " + amt.toFixed(2) + " " + pos.pool + " · Rewards claimed");
+}
+
+// ── CLAIM ──────────────────────────────────────────────────
+function claimRewards(posId) {
+  const positions = getPositions();
+  const idx = positions.findIndex(p => p.id === posId);
+  const pos = positions[idx];
+  const rewards = pendingRewards(pos);
+  if (rewards < 0.0001) { showToast("Rewards too small to claim yet", true); return; }
+  positions[idx].stakedAt = Date.now();
+  savePositions(positions);
+  demoBalances["USDC"] = (demoBalances["USDC"] || 0) + rewards;
+  const hist = getHistory();
+  hist.unshift({ type:"Claim", pool:pos.pool, amount:rewards, apy:pos.apy, time:Date.now() });
+  saveHistory(hist);
+  refreshStats(); renderPositions(); renderHistory();
+  showToast("Claimed $" + rewards.toFixed(4) + " in rewards");
+}
+
+// ── INFO MODAL ─────────────────────────────────────────────
+function openInfoModal(title, desc, apy, tvl, risk, lock) {
+  document.getElementById("im-title").textContent = title;
+  document.getElementById("im-desc").textContent  = desc;
+  document.getElementById("im-apy").textContent   = apy;
+  document.getElementById("im-tvl").textContent   = tvl;
+  document.getElementById("im-risk").textContent  = risk;
+  document.getElementById("im-lock").textContent  = lock;
+  openModal("info-modal");
+}
+
+// ── RENDER POSITIONS ───────────────────────────────────────
+function renderPositions() {
+  const section  = document.getElementById("positions-section");
+  const emptyEl  = document.getElementById("empty-positions");
+  const positions = getPositions();
+
+  section.querySelectorAll(".position-card").forEach(el => el.remove());
+
+  if (!walletConnected || positions.length === 0) {
+    emptyEl.style.display = "block";
+    document.getElementById("empty-positions-text").textContent = walletConnected
+      ? "No active positions — stake a token above to start earning"
+      : "Connect your wallet and stake to start earning";
+    return;
+  }
+  emptyEl.style.display = "none";
+
+  const colorMap = { USDC:"#2775CA", USDT:"#26A17B", "USDC/USDT LP":"#7c3aed" };
+  const iconMap  = { USDC:"$", USDT:"₮", "USDC/USDT LP":"⚡" };
+
+  positions.forEach(pos => {
+    const color   = colorMap[pos.pool] || "var(--accent)";
+    const icon    = iconMap[pos.pool]  || "$";
+    const cur     = pos.pool.length > 6 ? "LP" : pos.pool;
+    const rewards = pendingRewards(pos);
+
+    const card = document.createElement("div");
+    card.className = "position-card";
+    card.dataset.posId = pos.id;
+
+    // Token
+    const posToken = createEl("div", "pos-token");
+    const iconDiv  = createEl("div", "pos-token-icon");
+    iconDiv.style.cssText = `background:${color}22;color:${color};border:2px solid ${color}44`;
+    iconDiv.textContent = icon;
+    const nameWrap = createEl("div");
+    const nameLine = createEl("div", "pos-token-name"); nameLine.textContent = pos.pool;
+    const subLine  = createEl("div", "pos-token-sub");  subLine.textContent  = pos.apy + "% APY";
+    nameWrap.appendChild(nameLine); nameWrap.appendChild(subLine);
+    posToken.appendChild(iconDiv);  posToken.appendChild(nameWrap);
+    card.appendChild(posToken);
+
+    // Stats
+    [
+      { label:"Staked",          val: pos.amount.toFixed(2) + " " + cur, color:"var(--text)" },
+      { label:"Pending Rewards", val: "$" + rewards.toFixed(4),          color:"var(--green)", cls:"reward-val" },
+      { label:"Staked Since",    val: timeAgo(pos.stakedAt),              color:"var(--text)" },
+    ].forEach(s => {
+      const st  = createEl("div","pos-stat");
+      const lbl = createEl("div","pos-stat-label"); lbl.textContent = s.label;
+      const val = createEl("div","pos-stat-val");   val.textContent = s.val; val.style.color = s.color;
+      if (s.cls) val.classList.add(s.cls);
+      st.appendChild(lbl); st.appendChild(val); card.appendChild(st);
+    });
+
+    // Actions
+    const actions   = createEl("div","pos-actions");
+    const claimBtn  = createEl("button","btn-claim");     claimBtn.textContent  = "Claim";   claimBtn.onclick  = () => claimRewards(pos.id);
+    const unstakeBtn = createEl("button","btn-unstake-pos"); unstakeBtn.textContent = "Unstake"; unstakeBtn.onclick = () => openUnstakeModal(pos.id);
+    actions.appendChild(claimBtn); actions.appendChild(unstakeBtn);
+    card.appendChild(actions);
+
+    section.appendChild(card);
+  });
+}
+
+// ── RENDER HISTORY ─────────────────────────────────────────
+function renderHistory() {
+  const tbody = document.getElementById("tx-body");
+  const hist  = getHistory();
+  tbody.innerHTML = "";
+  if (hist.length === 0) {
+    const tr = document.createElement("tr");
+    const td = document.createElement("td");
+    td.colSpan = 6;
+    td.style.cssText = "text-align:center;color:var(--muted);padding:28px";
+    td.textContent = "No transactions yet";
+    tr.appendChild(td); tbody.appendChild(tr);
+    return;
+  }
+  const typeColor = { Stake:"#00e5ff", Unstake:"#ef4444", Claim:"#10b981" };
+  hist.slice(0, 20).forEach(tx => {
+    const color = typeColor[tx.type] || "var(--muted)";
+    const tr    = document.createElement("tr");
+
+    const tdType = createEl("td");
+    const wrap   = createEl("div","tx-type-wrap");
+    const dot    = createEl("span","tx-dot"); dot.style.background = color;
+    const lbl    = createEl("span"); lbl.style.cssText = `font-weight:700;color:${color}`; lbl.textContent = tx.type;
+    wrap.appendChild(dot); wrap.appendChild(lbl); tdType.appendChild(wrap);
+
+    const tdPool = createEl("td"); tdPool.style.fontWeight = "600"; tdPool.textContent = tx.pool;
+    const tdAmt  = createEl("td"); tdAmt.style.cssText  = "font-family:'Rajdhani',sans-serif;font-weight:700;font-size:15px";
+                   tdAmt.textContent = tx.type === "Claim" ? ("$" + tx.amount.toFixed(4)) : tx.amount.toFixed(2);
+    const tdApy  = createEl("td"); tdApy.style.cssText  = "color:var(--green);font-weight:700"; tdApy.textContent = tx.apy + "%";
+    const tdTime = createEl("td"); tdTime.style.color   = "var(--muted)"; tdTime.textContent = timeAgo(tx.time);
+    const tdSt   = createEl("td");
+    const badge  = createEl("span"); badge.style.cssText = "display:inline-block;padding:3px 10px;border-radius:999px;font-size:11px;font-weight:700;background:rgba(16,185,129,.12);color:#10b981";
+    badge.textContent = "Confirmed"; tdSt.appendChild(badge);
+
+    [tdType, tdPool, tdAmt, tdApy, tdTime, tdSt].forEach(td => tr.appendChild(td));
+    tbody.appendChild(tr);
+  });
+}
+
+// ── HELPERS ────────────────────────────────────────────────
+function openModal(id)  { document.getElementById(id).classList.add("open"); }
+function closeModal(id) { document.getElementById(id).classList.remove("open"); }
+document.querySelectorAll(".modal-overlay").forEach(el => {
+  el.addEventListener("click", e => { if (e.target === el) closeModal(el.id); });
+});
+function showErr(el, msg) { el.textContent = msg; el.style.display = "block"; }
+function setLoading(btnId, textId, spinnerId, on) {
+  document.getElementById(btnId).disabled           = on;
+  document.getElementById(textId).style.display     = on ? "none" : "inline";
+  document.getElementById(spinnerId).style.display  = on ? "inline-block" : "none";
+}
+function useMax(inputId, rawKey) {
+  const raw = rawKey === "sm-balance-raw" ? smBalanceRaw : umStakedRaw;
+  document.getElementById(inputId).value = raw.toFixed(2);
+  if (inputId === "sm-amount") updateStakePreview();
+}
+function createEl(tag, cls) { const el = document.createElement(tag); if (cls) el.className = cls; return el; }
+function sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
+function timeAgo(ts) {
+  const d = (Date.now() - ts) / 1000;
+  if (d < 60)    return "Just now";
+  if (d < 3600)  return Math.floor(d / 60) + "m ago";
+  if (d < 86400) return Math.floor(d / 3600) + "h ago";
+  return Math.floor(d / 86400) + "d ago";
+}
+
+let toastTimer;
+function showToast(msg, isError = false) {
+  const t = document.getElementById("toast");
+  document.getElementById("toast-msg").textContent  = msg;
+  document.getElementById("toast-icon").textContent = isError ? "⚠️" : "✅";
+  t.className = "toast" + (isError ? " error" : "") + " show";
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => t.classList.remove("show"), 3500);
+}
+
+// ── LIVE REWARD TICK ───────────────────────────────────────
+setInterval(() => {
+  if (!walletConnected) return;
+  refreshStats();
+  document.querySelectorAll(".position-card").forEach(card => {
+    const pos = getPositions().find(p => p.id === card.dataset.posId);
+    if (!pos) return;
+    const el = card.querySelector(".reward-val");
+    if (el) el.textContent = "$" + pendingRewards(pos).toFixed(4);
+  });
+}, 5000);
+
+// ── INIT ───────────────────────────────────────────────────
+refreshStats();
+renderPositions();
+renderHistory();
+
+if (window.solana && window.solana.isPhantom && window.solana.isConnected) {
+  window.solana.connect({ onlyIfTrusted: true })
+    .then(r => { walletAddress = r.publicKey.toString(); walletConnected = true; })
+    .then(() => {
+      const short = walletAddress.slice(0,5) + "…" + walletAddress.slice(-4);
+      document.getElementById("connect-btn").outerHTML =
+        `<div class="wallet-chip" id="connect-btn" onclick="disconnectWallet()">
+          <div class="wallet-icon"></div><span>${short}</span><span style="color:var(--muted);font-size:11px">✕</span>
+        </div>`;
+      refreshStats(); renderPositions();
+    })
+    .catch(() => {});
+}
+</script>
+</body>
+</html>
