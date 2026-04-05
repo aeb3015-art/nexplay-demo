@@ -369,7 +369,7 @@
     closeModal();
     SolPay.topup({
       userId:      USER_ID,
-      orderId:     "ord_" + Date.now(),
+      orderId:     "topup_" + USER_ID,
       description: "NexPlay Wallet Top-Up",
     });
   }
